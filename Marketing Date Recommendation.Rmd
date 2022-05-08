@@ -1,0 +1,170 @@
+---
+title: "Week 3 Exercise"
+author: "Georges Essoh"
+date: "9/18/2021"
+output: 
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+In the first part, we will focus on visualization. The idea is to identify the variables that could most influence the expectation. Indeed, by plotting the attendance against the other variables, one might be able to detect a pattern between them and those that directly influence attendance. Second, we will use a linear regression model to confirm that the variables identified in the first part have had a significant impact on expectation.
+
+
+
+1)Load Packages
+```{r}
+library(magrittr)
+library(readxl)
+library(ggplot2)
+library(psych)
+library(DataExplorer)
+library(tidyverse)
+```
+
+2)load file into a dataframe and data structure visualization
+```{r}
+df_dodgers <- read.csv("C:/Users/goess/Downloads/dodgers.csv")
+df_dodgers <- data.frame(df_dodgers)
+head(df_dodgers,10)
+```
+```{r}
+# Data structure
+str(df_dodgers)
+```
+
+We have 81 observations of 12 variables.
+
+3) summary statistics
+```{r}
+Hmisc::describe(df_dodgers)
+```
+
+The above summary tells us that the season takes place between April and November, that the matches can be played any day of the week (Wednesday to Sunday being the most frequent), day or night, with a preference for the night. The maximum attendance was 56,000 spectators. The promotions are Fireworks, cap, bobblehead and shirt.
+
+I- Data visualization
+
+4) let's visualize the data for better understanding
+let's plot attendance by day of the week, attendance by month , attendance by promotion, attendance by weather
+```{r}
+#Attendance by month
+ggplot2::ggplot(df_dodgers, ggplot2::aes(x=month, y=attend)) + 
+ggplot2::geom_boxplot(color="black", fill="grey", alpha=.5) + 
+ggplot2::labs(title="Attendance vs month", x='Month', y='Attendance') + 
+ggplot2:: theme_bw()
+ggplot2::theme(plot.title = ggplot2::element_text(hjust = 1)) 
+```
+
+
+June is the most popular month of the season on average.
+
+```{r}
+#Attendance vs day of the week
+ggplot2::ggplot(df_dodgers, ggplot2::aes(x=day_of_week, y=attend)) + 
+ggplot2::geom_boxplot(color="black", fill="lightgreen", alpha=.5) + 
+ggplot2::labs(title="Attendance vs Day of the week", x='Day of the week', y='Attendance') + 
+ggplot2:: theme_bw()
+ggplot2::theme(plot.title = ggplot2::element_text(hjust = 1))
+```
+
+
+Tuesday is by far the day of the week with the most attendance in average followed by Thursday.
+
+
+Weather and time of day can influence the expectation.
+```{r}
+#attendance vs skies
+ggplot2::ggplot(df_dodgers, ggplot2::aes(x=skies, y=attend)) + 
+ggplot2::geom_boxplot(color="black", fill="lightgrey", alpha=.5) + 
+ggplot2::labs(title="Attendance vs skies", x='skies', y='Attendance') + 
+ggplot2:: theme_bw()
+ggplot2::theme(plot.title = ggplot2::element_text(hjust = 1))
+```
+
+It is therefore obvious that clear skies draw the most crowds.
+
+```{r}
+#attendance vs day_night
+ggplot2::ggplot(df_dodgers, ggplot2::aes(x=day_night, y=attend)) + 
+ggplot2::geom_boxplot(color="black", fill="lightgreen", alpha=.5) + 
+ggplot2::labs(title="Attendance vs day_night", x='Day_Night', y='Attendance') + 
+ggplot2:: theme_bw()
+ggplot2::theme(plot.title = ggplot2::element_text(hjust = 1))
+```
+ 
+ 
+ The attendance is very slightly higher at night games compared to day games.
+ 
+ 
+5) Let's visualize attendance vs opponent
+```{r}
+ggplot(df_dodgers, aes(x=attend, y=opponent, color=day_night)) + 
+        geom_point() + 
+        ggtitle(" Attendance vs Opponent") +
+        theme(plot.title = element_text(lineheight=3, face="bold", color="black", size=10)) +
+        xlab("Attendance") +
+        ylab("Opponent")
+```
+
+
+We can see that the matches against opponents from large metropolises attract bigger crowds most of the time in evening.
+ 
+ 6)Let's combine attendance, weather, and time of the day and promotions.
+```{r}
+#fireworks promotion
+ggplot(df_dodgers, aes(x=attend, y=opponent, color=bobblehead)) + 
+        geom_point() + 
+        ggtitle("Attendance vs Opponent") +
+        theme(plot.title = element_text(lineheight=3, face="bold", color="black", size=10)) +
+        xlab("Attendance") +
+        ylab("Opponent")
+```
+ 
+ 
+ The promotion bobblehead seems to draw more crowds to the stadium on match days compared to others.
+
+```{r}
+ggplot(df_dodgers, aes(x=attend, y=opponent, color=fireworks)) + 
+        geom_point() + 
+        ggtitle(" Attendance vs Opponent") +
+        theme(plot.title = element_text(lineheight=3, face="bold", color="black", size=10)) +
+        xlab("Attendance ") +
+        ylab("Opponent")
+```
+
+
+Fireworks promotion seems to have a limited impact on crowds.
+
+Let's visualize atttendance vs temperature.
+```{r}
+ggplot(df_dodgers, aes(x=temp, y=attend/1000, color=day_night)) + 
+        geom_point() + 
+        geom_line(data = data.frame(x = c(60,90), y = c(20,60)), aes(x = x, y = y), colour = "red")+
+        ggtitle("Attendance vs temp") +
+        theme(plot.title = element_text(lineheight=3, face="bold", color="black", size=10)) +
+        ylab("Attendance") +
+        xlab("Temperature")
+```
+
+
+The attendance in the stadium peaks when temperatures are between 65F and 80F.
+
+The variables retained for the regression are, therefore: skies, bobblehead, temperature, opponents, day of the week and month.
+
+II- Regression model
+
+```{r}
+lmattendance = lm(attend~skies + bobblehead + temp + opponent + day_of_week + month,data = df_dodgers)
+summary(lmattendance)
+```
+
+Results Interpretation
+First of all, the value of the adjusted R-squared is 0.41. This means that the independent variables chosen together contribute to explain only 40% of the variability of the attendance. 
+Second, by observing the p-value of the different variables, The p-value for Bobblehead yes is 0.00208. A small value means that age is probably a good addition to my model. Going through the p-values of each variable and choosing the smallest, we can consider 0.19 for the day of the week, Tuesday, 0.54 for August and 0.34 for opponent brewers.
+Third, let us look at the estimate or correlation coefficient of each of the variables. A positive coefficient indicates that as the value of the independent variable increases.  It should be noted that the sign is essential in this case. So let us find the variables that have a high and positive correlation coefficient. The Estimate Bobblehead has a value of 10213, national opponent 1900, day of the week Tuesday 5119 and 4876 for August.
+
+Conclusion
+
+A marketing promotion  will have maximum impact if it is carried on a night where the bobblehead promotion is also carried out, preferably on a Tuesday and in June because in average, June is the month with the highest attendance on average.
+
+
